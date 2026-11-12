@@ -1,9 +1,0 @@
-packages:
-  - "security-report"
-
-allowBuilds:
-  esbuild: true
-
-blockExoticSubdeps: true
-minimumReleaseAge: 10080
-trustPolicy: no-downgrade
