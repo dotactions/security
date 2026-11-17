@@ -27,7 +27,7 @@ Reusable security-scanning workflows, consumed by other repositories. Reporting 
 | :--- | :--- |
 | `.github/workflows/trivy-audit.yml` | Public reusable workflow (`workflow_call`): Trivy → SARIF → `dotactions/sarif-reporter` |
 | `.github/workflows/internal-security-audit.yml` | Runs `trivy-audit.yml` on this repo |
-| `.github/workflows/internal-*.yml` | Thin callers of `dotactions/tooling` (see [Shared CI](#shared-ci-dotactionstooling)) |
+| `.github/workflows/internal-release.yml`, `internal-check-refs.yml`, `internal-actionlint.yml` | Thin callers of `dotactions/tooling` (see [Shared CI](#shared-ci-dotactionstooling)) |
 
 ## Pinning & References
 
@@ -37,7 +37,7 @@ Reusable security-scanning workflows, consumed by other repositories. Reporting 
 
 ## Shared CI (`dotactions/tooling`)
 
-- `internal-release.yml`, `internal-check-refs.yml`, `internal-actionlint.yml`, `internal-lint.yml` are thin callers of `dotactions/tooling/.github/workflows/*.yml`. They only hold `on:`/`paths:`, `permissions:` and `with:`. Logic changes go to `tooling`, not here.
+- `internal-release.yml`, `internal-check-refs.yml` and `internal-actionlint.yml` are thin callers of `dotactions/tooling/.github/workflows/*.yml`. They only hold `on:`/`paths:`, `permissions:` and `with:`. Logic changes go to `tooling`, not here.
 - Callers never declare `concurrency:`; the called workflow does, and an identical group in caller and callee deadlocks.
 
 ## Inputs, Scripts & Security
