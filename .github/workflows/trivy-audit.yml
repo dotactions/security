@@ -4,18 +4,23 @@ on:
   workflow_call:
     inputs:
       scan-type:
+        description: "Trivy scan target type: fs or config"
         type: string
         default: "fs"
       severity:
+        description: "Comma-separated severity levels to include"
         type: string
         default: "CRITICAL,HIGH,MEDIUM"
       fail-on-findings:
+        description: "Fail the workflow if findings are detected"
         type: boolean
         default: false
       upload-artifact:
+        description: "Upload the SARIF report as a job artifact"
         type: boolean
         default: true
       manage-issue:
+        description: "Create, update and close a tracking issue"
         type: boolean
         default: false
     secrets:
@@ -23,15 +28,30 @@ on:
         description: "GitHub token with pull-requests and issues write permissions"
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   trivy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
       issues: write
     steps:
+      - name: Validate inputs
+        env:
+          SCAN_TYPE: ${{ inputs.scan-type }}
+        run: |
+          case "$SCAN_TYPE" in
+            fs|config) ;;
+            *) echo "::error::scan-type must be 'fs' or 'config', got '$SCAN_TYPE'"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run Trivy Scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -39,12 +59,12 @@ jobs:
           scan-type: ${{ inputs.scan-type }}
           format: "sarif"
           output: "trivy.sarif"
+          scanners: "vuln,secret,misconfig"
           severity: ${{ inputs.severity }}
+          limit-severities-for-sarif: true
 
       - name: Report Trivy Results
-        # @main is rewritten to the exact release tag by internal-release.yml
-        # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
-        uses: dotsem/actions/security-report@main
+        uses: dotactions/sarif-reporter@917c66712f17657e67d429895eade83a9543034d # v0.1.0
         if: always() && hashFiles('trivy.sarif') != ''
         with:
           title: "Trivy Vulnerability Report"
