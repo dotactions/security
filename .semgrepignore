@@ -1,0 +1,1 @@
+# why: without this file Semgrep's built-in ignore list skips tests/, which hides the internal-test.yml fixture

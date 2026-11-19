@@ -49,6 +49,12 @@ permissions:
 | `upload-artifact`  | Upload SARIF scan report as a job artifact     | No       | `true`                   |
 | `manage-issue`     | Create/update/close tracked GitHub issue       | No       | `false`                  |
 
+### Outputs
+
+| Name             | Description                  |
+| :--------------- | :--------------------------- |
+| `total-findings` | Number of findings reported  |
+
 ### Secrets
 
 | Name    | Description                                                  | Required |
@@ -106,8 +112,9 @@ Same as `trivy-audit.yml`: `contents: read`, `pull-requests: write`, `issues: wr
 | `fail-on-findings` | Fail the workflow if findings are detected                      | No       | `false`       |
 | `upload-artifact`  | Upload the SARIF report as `semgrep-sarif`                      | No       | `true`        |
 | `manage-issue`     | Create/update/close tracked GitHub issue                        | No       | `false`       |
+| `comment-tag`      | Sticky PR comment tag, distinct per call if called repeatedly   | No       | `"semgrep"`   |
 
-Secret `token` works as in `trivy-audit.yml`.
+Output `total-findings` and secret `token` work as in `trivy-audit.yml`.
 
 ### Usage
 
