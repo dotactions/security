@@ -2,6 +2,14 @@
 
 Reusable security-scanning workflows. Findings are reported by [`dotactions/sarif-reporter`](https://github.com/dotactions/sarif-reporter).
 
+## Contents
+
+- [Versioning](#versioning)
+- [Trivy Security Audit (`trivy-audit.yml`)](#trivy-security-audit-trivy-audityml)
+- [Semgrep SAST (`semgrep.yml`)](#semgrep-sast-semgrepyml)
+- [Run both in one workflow](#run-both-in-one-workflow)
+- [Releasing (maintainers)](#releasing-maintainers)
+
 ## Versioning
 
 Pin the **full commit SHA** of a release tag, with the version in a comment, or a floating tag. While on `0.x`, minor releases may break you:
