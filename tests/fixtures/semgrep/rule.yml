@@ -1,0 +1,6 @@
+rules:
+  - id: dotactions-fixture
+    languages: [python]
+    severity: ERROR
+    message: Known-positive fixture finding for internal-test.yml
+    pattern: dotactions_fixture_sink(...)

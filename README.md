@@ -48,6 +48,13 @@ permissions:
 | `fail-on-findings` | Fail the workflow if findings are detected     | No       | `false`                  |
 | `upload-artifact`  | Upload SARIF scan report as a job artifact     | No       | `true`                   |
 | `manage-issue`     | Create/update/close tracked GitHub issue       | No       | `false`                  |
+| `post-comment`     | Create/update sticky PR comment on PR events   | No       | `true`                   |
+
+### Outputs
+
+| Name             | Description                  |
+| :--------------- | :--------------------------- |
+| `total-findings` | Number of findings reported  |
 
 ### Secrets
 
@@ -96,7 +103,14 @@ Runs Semgrep OSS (pinned image) with the given rulesets and reports the findings
 
 ### Permissions Required
 
-Same as `trivy-audit.yml`: `contents: read`, `pull-requests: write`, `issues: write`.
+Both `write` permissions are required even with `manage-issue: false`: the called job requests them, and GitHub rejects the run if the caller grants less. Call this workflow at most once per `scan-type` per calling workflow: the artifact name (`trivy-sarif-<scan-type>`) and comment tag (`trivy-audit-<scan-type>`) derive from it, so `fs` and `image` can run side by side.
+
+```yaml
+permissions:
+    contents: read
+    pull-requests: write # sticky PR comment
+    issues: write # tracking issue; required even if manage-issue is false
+```
 
 ### Inputs
 
@@ -106,8 +120,20 @@ Same as `trivy-audit.yml`: `contents: read`, `pull-requests: write`, `issues: wr
 | `fail-on-findings` | Fail the workflow if findings are detected                      | No       | `false`       |
 | `upload-artifact`  | Upload the SARIF report as `semgrep-sarif`                      | No       | `true`        |
 | `manage-issue`     | Create/update/close tracked GitHub issue                        | No       | `false`       |
+| `comment-tag`      | Sticky PR comment tag, distinct per call if called repeatedly   | No       | `"semgrep"`   |
+| `post-comment`     | Create/update the sticky PR comment on PR events                | No       | `true`        |
 
-Secret `token` works as in `trivy-audit.yml`.
+### Outputs
+
+| Name             | Description                  |
+| :--------------- | :--------------------------- |
+| `total-findings` | Number of findings reported  |
+
+### Secrets
+
+| Name    | Description                                                  | Required |
+| :------ | :----------------------------------------------------------- | :------- |
+| `token` | GitHub token with pull-requests and issues write permissions | No       |
 
 ### Usage
 
@@ -144,7 +170,48 @@ jobs:
             manage-issue: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 ```
 
-To run it next to Trivy, add the `semgrep` job to the same workflow file as the `audit` job above.
+## Run both in one workflow
+
+Both workflows can be jobs of a single workflow file: they share the triggers and run in parallel. Their PR comments, tracking issues and artifacts have distinct names, so they don't overwrite each other.
+
+```yaml
+# .github/workflows/security.yml
+name: Security Audit
+
+on:
+    push:
+        branches: [main]
+        paths-ignore: &paths
+            - "**.md"
+    pull_request:
+        branches: [main]
+        paths-ignore: *paths
+    schedule:
+        - cron: "0 4 * * 4" # weekly Thursday at 04:00 UTC
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+    trivy:
+        uses: dotactions/security/.github/workflows/trivy-audit.yml@v0.1
+        permissions: &permissions
+            contents: read
+            pull-requests: write
+            issues: write
+        with:
+            severity: "CRITICAL,HIGH"
+            manage-issue: &manage-issue ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+    semgrep:
+        uses: dotactions/security/.github/workflows/semgrep.yml@v0.1
+        permissions: *permissions
+        with:
+            config: p/default p/golang
+            manage-issue: *manage-issue
+```
 
 ## Releasing (maintainers)
 

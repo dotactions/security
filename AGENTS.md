@@ -27,6 +27,7 @@ Reusable security-scanning workflows, consumed by other repositories. Reporting 
 | :--- | :--- |
 | `.github/workflows/trivy-audit.yml` | Public reusable workflow (`workflow_call`): Trivy → SARIF → `dotactions/sarif-reporter` |
 | `.github/workflows/semgrep.yml` | Public reusable workflow: Semgrep OSS (pinned image) → SARIF → `dotactions/sarif-reporter` |
+| `.github/workflows/internal-test.yml`, `tests/fixtures/` | Known-positive tests of the public workflows (see [Testing](#testing)) |
 | `.github/workflows/internal-security-audit.yml` | Runs `trivy-audit.yml` and `semgrep.yml` (`p/github-actions`) on this repo |
 | `.github/workflows/internal-release.yml`, `internal-check-refs.yml`, `internal-actionlint.yml` | Thin callers of `dotactions/tooling` (see [Shared CI](#shared-ci-dotactionstooling)) |
 
@@ -56,7 +57,9 @@ Reusable security-scanning workflows, consumed by other repositories. Reporting 
 
 ## Testing
 
-- `internal-security-audit.yml` exercises `trivy-audit.yml` end to end; changes to it are verified in CI.
+- `internal-test.yml` runs each public workflow against a known-positive input and asserts `total-findings > 0`: Semgrep against `tests/fixtures/semgrep/`, Trivy against an EOL image pinned by digest. Add a known-positive case for every new scanner workflow.
+- `.semgrepignore` exists only to stop Semgrep's built-in ignore list from skipping `tests/`; don't delete it.
+- `internal-security-audit.yml` runs the workflows on this repo itself; it must stay at zero findings, so never commit vulnerable fixtures that `trivy fs` would flag.
 - Local checks before finishing (run whichever apply):
     - `docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12` for workflow changes
 - Report honestly which checks ran and which could not (e.g. multi-OS builds only run in CI).

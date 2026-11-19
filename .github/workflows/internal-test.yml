@@ -1,0 +1,61 @@
+name: Test Security Workflows
+
+on:
+  pull_request:
+    paths: &paths
+      - ".github/workflows/semgrep.yml"
+      - ".github/workflows/trivy-audit.yml"
+      - ".github/workflows/internal-test.yml"
+      - ".semgrepignore"
+      - "tests/**"
+  push:
+    branches: [main]
+    paths: *paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: internal-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  semgrep:
+    uses: ./.github/workflows/semgrep.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    with:
+      config: tests/fixtures/semgrep/rule.yml
+      post-comment: false
+      upload-artifact: false
+
+  # why: an EOL image pinned by digest keeps a stable set of known CVEs without committing vulnerable files that the fs self-audit would flag
+  trivy:
+    uses: ./.github/workflows/trivy-audit.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    with:
+      scan-type: image
+      image-ref: debian:10-slim@sha256:bb3dc79fddbca7e8903248ab916bb775c96ec61014b3d02b4f06043b604726dc
+      post-comment: false
+      upload-artifact: false
+
+  assert:
+    needs: [semgrep, trivy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Assert known-positive findings were reported
+        env:
+          SEMGREP: ${{ needs.semgrep.outputs.total-findings }}
+          TRIVY: ${{ needs.trivy.outputs.total-findings }}
+        run: |
+          for pair in "semgrep=$SEMGREP" "trivy=$TRIVY"; do
+            COUNT=${pair#*=}
+            [ "${COUNT:-0}" -gt 0 ] 2>/dev/null || { echo "::error::${pair%%=*} reported '${COUNT}' findings, expected at least 1"; exit 1; }
+          done
