@@ -29,7 +29,7 @@ jobs:
       issues: write
     with:
       config: tests/fixtures/semgrep/rule.yml
-      comment-tag: semgrep-internal-test
+      post-comment: false
       upload-artifact: false
 
   # why: an EOL image pinned by digest keeps a stable set of known CVEs without committing vulnerable files that the fs self-audit would flag
@@ -42,6 +42,7 @@ jobs:
     with:
       scan-type: image
       image-ref: debian:10-slim@sha256:bb3dc79fddbca7e8903248ab916bb775c96ec61014b3d02b4f06043b604726dc
+      post-comment: false
       upload-artifact: false
 
   assert:

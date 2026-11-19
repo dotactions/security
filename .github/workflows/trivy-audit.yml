@@ -27,6 +27,10 @@ on:
         description: "Image to scan (required when scan-type is image)"
         type: string
         default: ""
+      post-comment:
+        description: "Create or update the sticky PR comment on pull request events"
+        type: boolean
+        default: true
     outputs:
       total-findings:
         description: "Number of findings reported"
@@ -86,6 +90,7 @@ jobs:
           title: "Trivy Vulnerability Report"
           sarif-file: "trivy.sarif"
           comment-tag: "trivy-audit-${{ inputs.scan-type }}"
+          post-comment: ${{ inputs.post-comment }}
           manage-issue: ${{ inputs.manage-issue }}
           fail-on-findings: ${{ inputs.fail-on-findings }}
           github-token: ${{ secrets.token || github.token }}

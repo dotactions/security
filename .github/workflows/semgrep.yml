@@ -23,6 +23,10 @@ on:
         description: "Sticky PR comment tag; set a distinct one per call when calling this workflow more than once"
         type: string
         default: "semgrep"
+      post-comment:
+        description: "Create or update the sticky PR comment on pull request events"
+        type: boolean
+        default: true
     outputs:
       total-findings:
         description: "Number of findings reported"
@@ -72,6 +76,7 @@ jobs:
           title: "Semgrep SAST Report"
           sarif-file: "semgrep.sarif"
           comment-tag: ${{ inputs.comment-tag }}
+          post-comment: ${{ inputs.post-comment }}
           issue-title: "[Security Audit] Semgrep findings detected"
           manage-issue: ${{ inputs.manage-issue }}
           fail-on-findings: ${{ inputs.fail-on-findings }}
