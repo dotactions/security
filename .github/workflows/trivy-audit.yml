@@ -84,7 +84,7 @@ jobs:
 
       - name: Report Trivy Results
         id: report
-        uses: dotactions/sarif-reporter@917c66712f17657e67d429895eade83a9543034d # v0.1.0
+        uses: dotactions/sarif-reporter@5796dde6b1e4f1a36ef3bdfde3002a8623715d29 # v0.2.0
         if: always() && hashFiles('trivy.sarif') != ''
         with:
           title: "Trivy Vulnerability Report"
