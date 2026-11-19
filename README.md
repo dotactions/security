@@ -64,12 +64,11 @@ name: Security Audit
 on:
     push:
         branches: [main]
-        paths-ignore:
+        paths-ignore: &paths
             - "**.md"
     pull_request:
         branches: [main]
-        paths-ignore:
-            - "**.md"
+        paths-ignore: *paths
     schedule:
         - cron: "0 4 * * 4" # weekly Thursday at 04:00 UTC
     workflow_dispatch:
@@ -90,6 +89,62 @@ jobs:
             fail-on-findings: true
             manage-issue: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 ```
+
+## Semgrep SAST (`semgrep.yml`)
+
+Runs Semgrep OSS (pinned image) with the given rulesets and reports the findings through [`dotactions/sarif-reporter`](https://github.com/dotactions/sarif-reporter). Metrics are off, so `--config auto` is not supported: name rulesets explicitly from the [Semgrep registry](https://semgrep.dev/explore) (`p/default`, `p/golang`, `p/typescript`, `p/github-actions`, …) or pass paths to your own rule files.
+
+### Permissions Required
+
+Same as `trivy-audit.yml`: `contents: read`, `pull-requests: write`, `issues: write`.
+
+### Inputs
+
+| Name               | Description                                                     | Required | Default       |
+| :----------------- | :-------------------------------------------------------------- | :------- | :------------ |
+| `config`           | Whitespace-separated rulesets or rule file/directory paths      | No       | `"p/default"` |
+| `fail-on-findings` | Fail the workflow if findings are detected                      | No       | `false`       |
+| `upload-artifact`  | Upload the SARIF report as `semgrep-sarif`                      | No       | `true`        |
+| `manage-issue`     | Create/update/close tracked GitHub issue                        | No       | `false`       |
+
+Secret `token` works as in `trivy-audit.yml`.
+
+### Usage
+
+```yaml
+# .github/workflows/semgrep.yml
+name: Semgrep
+
+on:
+    push:
+        branches: [main]
+        paths-ignore: &paths
+            - "**.md"
+    pull_request:
+        branches: [main]
+        paths-ignore: *paths
+    schedule:
+        - cron: "0 4 * * 4" # weekly Thursday at 04:00 UTC
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+    semgrep:
+        uses: dotactions/security/.github/workflows/semgrep.yml@v0.1
+        permissions:
+            contents: read
+            pull-requests: write
+            issues: write
+        with:
+            config: p/default p/golang .semgrep/ # registry rulesets plus your own rules directory
+            fail-on-findings: true
+            manage-issue: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+```
+
+To run it next to Trivy, add the `semgrep` job to the same workflow file as the `audit` job above.
 
 ## Releasing (maintainers)
 

@@ -26,3 +26,13 @@ jobs:
       issues: write
     with:
       manage-issue: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+  semgrep:
+    uses: ./.github/workflows/semgrep.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    with:
+      config: p/github-actions
+      manage-issue: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
