@@ -1,0 +1,75 @@
+name: Semgrep SAST
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: "Whitespace-separated Semgrep rulesets or rule files (e.g. p/default p/golang .semgrep/)"
+        type: string
+        default: "p/default"
+      fail-on-findings:
+        description: "Fail the workflow if findings are detected"
+        type: boolean
+        default: false
+      upload-artifact:
+        description: "Upload the SARIF report as a job artifact"
+        type: boolean
+        default: true
+      manage-issue:
+        description: "Create, update and close a tracking issue"
+        type: boolean
+        default: false
+    secrets:
+      token:
+        description: "GitHub token with pull-requests and issues write permissions"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # why: explicit rulesets instead of --config auto, which refuses to run with --metrics=off
+      # why: no --error, so a finding still reaches sarif-reporter, which owns fail-on-findings
+      - name: Run Semgrep
+        env:
+          CONFIG: ${{ inputs.config }}
+        run: |
+          set -f
+          ARGS=()
+          for c in $CONFIG; do ARGS+=(--config "$c"); done
+          [ "${#ARGS[@]}" -gt 0 ] || { echo "::error::config must name at least one ruleset (e.g. p/default)"; exit 1; }
+          docker run --rm -v "$PWD:/src" -w /src \
+            semgrep/semgrep:1.185.0@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d \
+            semgrep scan "${ARGS[@]}" --metrics=off --sarif-output=semgrep.sarif
+
+      - name: Report Semgrep Results
+        uses: dotactions/sarif-reporter@917c66712f17657e67d429895eade83a9543034d # v0.1.0
+        if: always() && hashFiles('semgrep.sarif') != ''
+        with:
+          title: "Semgrep SAST Report"
+          sarif-file: "semgrep.sarif"
+          comment-tag: "semgrep"
+          issue-title: "[Security Audit] Semgrep findings detected"
+          manage-issue: ${{ inputs.manage-issue }}
+          fail-on-findings: ${{ inputs.fail-on-findings }}
+          github-token: ${{ secrets.token || github.token }}
+
+      - name: Upload SARIF Artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && inputs.upload-artifact && hashFiles('semgrep.sarif') != ''
+        with:
+          name: semgrep-sarif
+          path: "semgrep.sarif"
+          retention-days: 30

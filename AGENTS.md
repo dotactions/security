@@ -26,7 +26,8 @@ Reusable security-scanning workflows, consumed by other repositories. Reporting 
 | Path | Purpose |
 | :--- | :--- |
 | `.github/workflows/trivy-audit.yml` | Public reusable workflow (`workflow_call`): Trivy → SARIF → `dotactions/sarif-reporter` |
-| `.github/workflows/internal-security-audit.yml` | Runs `trivy-audit.yml` on this repo |
+| `.github/workflows/semgrep.yml` | Public reusable workflow: Semgrep OSS (pinned image) → SARIF → `dotactions/sarif-reporter` |
+| `.github/workflows/internal-security-audit.yml` | Runs `trivy-audit.yml` and `semgrep.yml` (`p/github-actions`) on this repo |
 | `.github/workflows/internal-release.yml`, `internal-check-refs.yml`, `internal-actionlint.yml` | Thin callers of `dotactions/tooling` (see [Shared CI](#shared-ci-dotactionstooling)) |
 
 ## Pinning & References
