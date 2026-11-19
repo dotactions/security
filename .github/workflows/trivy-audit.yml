@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       scan-type:
-        description: "Trivy scan target type: fs or config"
+        description: "Trivy scan target type: fs, image or config"
         type: string
         default: "fs"
       severity:
@@ -23,6 +23,10 @@ on:
         description: "Create, update and close a tracking issue"
         type: boolean
         default: false
+      image-ref:
+        description: "Image to scan (required when scan-type is image)"
+        type: string
+        default: ""
     secrets:
       token:
         description: "GitHub token with pull-requests and issues write permissions"
@@ -43,11 +47,15 @@ jobs:
       - name: Validate inputs
         env:
           SCAN_TYPE: ${{ inputs.scan-type }}
+          IMAGE_REF: ${{ inputs.image-ref }}
         run: |
           case "$SCAN_TYPE" in
-            fs|config) ;;
-            *) echo "::error::scan-type must be 'fs' or 'config', got '$SCAN_TYPE'"; exit 1 ;;
+            fs|image|config) ;;
+            *) echo "::error::scan-type must be 'fs', 'image' or 'config', got '$SCAN_TYPE'"; exit 1 ;;
           esac
+          if [ "$SCAN_TYPE" = image ] && [ -z "$IMAGE_REF" ]; then
+            echo "::error::image-ref is required when scan-type is 'image'"; exit 1
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,6 +65,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: ${{ inputs.scan-type }}
+          image-ref: ${{ inputs.image-ref }}
           format: "sarif"
           output: "trivy.sarif"
           scanners: "vuln,secret,misconfig"
@@ -69,7 +78,7 @@ jobs:
         with:
           title: "Trivy Vulnerability Report"
           sarif-file: "trivy.sarif"
-          comment-tag: "trivy-audit"
+          comment-tag: "trivy-audit-${{ inputs.scan-type }}"
           manage-issue: ${{ inputs.manage-issue }}
           fail-on-findings: ${{ inputs.fail-on-findings }}
           github-token: ${{ secrets.token || github.token }}
@@ -78,6 +87,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && inputs.upload-artifact && hashFiles('trivy.sarif') != ''
         with:
-          name: trivy-sarif
+          name: trivy-sarif-${{ inputs.scan-type }}
           path: "trivy.sarif"
           retention-days: 30

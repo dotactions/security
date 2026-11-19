@@ -29,7 +29,7 @@ Runs Trivy vulnerability, secret and misconfiguration scanning on the caller rep
 
 ### Permissions Required
 
-Both `write` permissions are required even with `manage-issue: false`: the called job requests them, and GitHub rejects the run if the caller grants less. Call this workflow once per calling workflow: the artifact name (`trivy-sarif`) and comment tag are fixed.
+Both `write` permissions are required even with `manage-issue: false`: the called job requests them, and GitHub rejects the run if the caller grants less. Call this workflow at most once per `scan-type` per calling workflow: the artifact name (`trivy-sarif-<scan-type>`) and comment tag (`trivy-audit-<scan-type>`) derive from it, so `fs` and `image` can run side by side.
 
 ```yaml
 permissions:
@@ -40,13 +40,14 @@ permissions:
 
 ### Inputs
 
-| Name               | Description                                | Required | Default                  |
-| :----------------- | :----------------------------------------- | :------- | :----------------------- |
-| `scan-type`        | Trivy scan type: `fs` or `config`         | No       | `"fs"`                   |
-| `severity`         | Comma-separated severity levels to include | No       | `"CRITICAL,HIGH,MEDIUM"` |
-| `fail-on-findings` | Fail the workflow if findings are detected | No       | `false`                  |
-| `upload-artifact`  | Upload SARIF scan report as a job artifact | No       | `true`                   |
-| `manage-issue`     | Create/update/close tracked GitHub issue   | No       | `false`                  |
+| Name               | Description                                    | Required | Default                  |
+| :----------------- | :--------------------------------------------- | :------- | :----------------------- |
+| `scan-type`        | Trivy scan type: `fs`, `image` or `config`     | No       | `"fs"`                   |
+| `image-ref`        | Image to scan; required for `scan-type: image` | No       | `""`                     |
+| `severity`         | Comma-separated severity levels to include     | No       | `"CRITICAL,HIGH,MEDIUM"` |
+| `fail-on-findings` | Fail the workflow if findings are detected     | No       | `false`                  |
+| `upload-artifact`  | Upload SARIF scan report as a job artifact     | No       | `true`                   |
+| `manage-issue`     | Create/update/close tracked GitHub issue       | No       | `false`                  |
 
 ### Secrets
 
